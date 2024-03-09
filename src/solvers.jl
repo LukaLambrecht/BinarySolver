@@ -3,58 +3,86 @@
 
 module solvers
 
-function maplines(f, b)
+include("linesolvers.jl")
+include("expand.jl")
+include("iotools.jl")
+
+function maplines(f, b; dobreak=false)
     # execute a function on each line of a binary.
+    # note: f is supposed to return a vector with info on filled instances,
+    #       with elements of type (infostr, idx, value)
     # input arguments:
     # - f: function operating on a line in a binary
     # - b: a binary grid
-    for row in eachrow(b) f(row) end
-    for col in eachcol(b) f(col) end
-    return nothing
+    # - break: whether to break after one line was found
+    #          in which instance(s) could be filled
+    # returns:
+    # - a vector with info on filled instances,
+    #   with elements of type (infostr, (rown, coln), value)
+    filled = []
+    for (rown, row) in enumerate(eachrow(b))
+        infos = f(row)
+        for info in infos push!(filled, (info[1]*" (row)", (rown, info[2]), info[3])) end
+        if (dobreak && length(filled)>0) break end
+    end
+    if (dobreak && length(filled)>0) return filled end
+    for (coln, col) in enumerate(eachcol(b))
+        infos = f(col)
+        for info in infos push!(filled, (info[1]*" (column)", (info[2], coln), info[3])) end
+        if (dobreak && length(filled)>0) break end
+    end
+    return filled
 end
 
-function reduceline(x)
-    # perform basic reduction operations on a line.
+function maplinesloop(f, b)
+    # execute a function on each line of a binary
+    # and repeat until no more entries can be filled.
+    # note: f is supposed to return a vector with info on filled instances,
+    #       with elements of type (infostr, idx, value)
     # input arguments:
-    # - x: 1d array representing a line in a binary
-    # note: basic operations include:
-    # - outer method: - 0 0 - -> 1 0 0 1
-    # - inner metod: 0 - 0 -> 0 1 0
-    # - balance method: ensure equal number of 0 and 1
+    # - f: function operating on a line in a binary
+    # - b: a binary grid
+    # returns:
+    # - a vector with info on filled instances,
+    #   with elements of type (infostr, (rown, coln), value)
+    temp = maplines(f, b)
+    filled = copy(temp)
+    while length(temp)>0
+        temp = maplines(f, b)
+        for el in temp push!(filled, el) end
+    end
+    return filled
+end
 
-    # initializations
-    len = length(x)
-    halflen = len/2
+function solve(b)
+    # complete solving method
+    
+    # initialize vector of filled locations
+    filled = []
+    filled_iteration = [0]
 
-    # outer method
-    if (x[1]!=-1 && x[2]==x[1] && x[3]==-1) x[3] = 1-x[1] end
-    if (x[len]!=-1 && x[len-1]==x[len] && x[len-2]==-1) x[len-2] = 1-x[len] end
-    for idx = 2:len-2
-        if (x[idx]!=-1 && x[idx+1]==x[idx])
-            if x[idx-1]==-1 x[idx-1] = 1-x[idx] end
-            if x[idx+2]==-1 x[idx+2] = 1-x[idx] end
+    # repeat as long as entries can be filled
+    while length(filled_iteration)>0
+        filled_iteration = []
+    
+        # basic line reduction until no more entries can be filled
+        temp = maplinesloop(linesolvers.reducelineloop, b)
+        for el in temp 
+            push!(filled_iteration, el)
+            push!(filled, el)
+        end
+
+        # common patterns in possible solutions
+        temp = maplines(expand.expandreduce, b, dobreak=true)
+        for el in temp
+            push!(filled_iteration, el)
+            push!(filled, el)
         end
     end
 
-    # inner method
-    for idx = 2:len-1
-        if (x[idx]==-1 && x[idx-1]!=-1 && x[idx+1]==x[idx-1])
-            x[idx] = 1-x[idx+1]
-        end
-    end
+    # return vector with filled locations
+    return filled
 
-    # balance method
-    if count(==(0), x) == halflen
-        for idx = 1:len
-            if x[idx]==-1 x[idx] = 1 end
-        end
-    end
-    if count(==(1), x) == halflen
-        for idx = 1:len
-            if x[idx]==-1 x[idx] = 0 end
-        end
-    end
-    return nothing
 end
 
 end

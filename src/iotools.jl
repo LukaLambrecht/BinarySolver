@@ -7,6 +7,11 @@ using DelimitedFiles
 
 function readtxt(inputfile)
     # read a txt file into a binary grid
+    # input arguments:
+    # - inputfile: path to an input txt file
+    # returns
+    # - an object of type Matrix{Int} (i.e. a 2D Array{Int}),
+    #   with each element either 0, 1 or -1 (for unknown)
     aux = readdlm(inputfile)
     aux[aux .== "-"] .= -1
     binary = Int.(aux)

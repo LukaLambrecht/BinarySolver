@@ -19,15 +19,16 @@ function issubarray(sub::AbstractVector, full::AbstractVector)
     return false
 end
     
+function line_contains_triplet(line)
+    # check if a line contains a triplet
+    if issubarray([0,0,0], line) return true end
+    if issubarray([1,1,1], line) return true end
+    return false
+end
 
 function containstriplet(b)
     # check if a binary contains a triplet
     # (e.g. for early-detecting mistakes)
-    function line_contains_triplet(l)
-        if issubarray([0,0,0], l) return true end
-        if issubarray([1,1,1], l) return true end
-        return false
-    end
     for row in eachrow(b)
         if line_contains_triplet(row) return true end
     end
@@ -37,15 +38,16 @@ function containstriplet(b)
     return false
 end
 
+function line_contains_excess(line)
+    halflen = length(line) / 2
+    if count(==(0), line) > halflen return true end
+    if count(==(1), line) > halflen return true end
+    return false
+end
+
 function containsexcess(b)
     # check if a binary contains too many 0s or 1s per line
     # (e.g. for early-detecting mistakes)
-    function line_contains_excess(l)
-        halflen = length(l) / 2
-        if count(==(0), l) > halflen return true end
-        if count(==(1), l) > halflen return true end
-        return false
-    end
     for row in eachrow(b)
         if line_contains_excess(row) return true end
     end
@@ -70,6 +72,11 @@ function containsidentical(b)
         end
     end
     return false
+end
+
+function line_contains_error(line)
+    # accumulator of line error functions
+    return (line_contains_triplet(line) || line_contains_excess(line))
 end
 
 function containserror(b)
