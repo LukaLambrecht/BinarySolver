@@ -26,16 +26,22 @@ function getdashed(b)
     return dashed
 end
 
-function printbinary(b)
-    # print a binary in a nice way
+function tostring(b)
+    # get a printable string representation of a binary
     dashed = getdashed(b)
+    out = ""
     for row in eachrow(dashed)
         for idx = 1:length(row)
-            print(row[idx])
-            print(" ")
+            out = out * string(row[idx]) * " "
         end
-        println()
+        out = out * "\n"
     end
+    return out
+end
+
+function printbinary(b)
+    # print a binary in a nice way
+    print(tostring(b))
     return nothing
 end
 
