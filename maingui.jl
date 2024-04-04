@@ -29,7 +29,25 @@ function choosefile(button::Button)
 end
 
 function loadfile(fs::FileChooser, files::Vector{FileDescriptor})
+    # check that only one file was selected
+    # (should not be possible with the correct FileChooser settings,
+    # but keep this check here for extra safety.)
+    nfiles = length(files)
+    if nfiles!=1
+        infotxt = "ERROR: expected 1 file, but $nfiles were selected."
+        setinfolabeltext(infotxt)
+        return nothing
+    end
     file = files[1]
+    # check if file is correctly formatted
+    (file_is_good, error_msg) = iotools.checkfile(get_path(file))
+    if !file_is_good
+        infotxt = "ERROR: the selected file could not be loaded,"
+        infotxt = infotxt * " because of the following error:\n"
+        infotxt = infotxt * error_msg
+        setinfolabeltext(infotxt)
+        return nothing
+    end
     b = iotools.readtxt(get_path(file))
     setblabeltext(iotools.tostring(b))
     setinfolabeltext("")
@@ -47,7 +65,20 @@ function solvebinary(button::Button)
     if isnothing(b) return nothing end
     infos = solvers.solve(b)
     setblabeltext(iotools.tostring(b))
+    # initialize log text
     infotxt = ""
+    # add the status after solving to log text
+    isfilled = status.isfilled(b)
+    containserror = status.containserror(b)
+    if containserror
+        infotxt = infotxt * "WARNING: binary puzzle contains errors.\n\n"
+    elseif !isfilled
+        infotxt = infotxt * "WARNING: binary puzzle could not be solved completely.\n\n"
+    else
+        infotxt = infotxt * "Binary puzzle was solved successfully.\n\n"
+    end
+    # add the solving info to the log text
+    infotxt = infotxt * "Log of solving methods:\n"
     for info in infos
         solver = info[1]
         cell = info[2]

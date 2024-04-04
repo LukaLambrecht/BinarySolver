@@ -10,6 +10,14 @@ include("./src/solvers.jl")
 # read command line args
 file = ARGS[1]
 
+# check the input file
+(file_is_good, error_msg) = iotools.checkfile(file)
+if !file_is_good
+    msg = "input file could not be loaded because of the following error: "
+    msg = msg * error_msg
+    error(msg)
+end
+
 # load the binary
 a = iotools.readtxt(file)
 println("Loaded the following binary puzzle:")
